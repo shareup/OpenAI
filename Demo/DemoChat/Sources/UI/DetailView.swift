@@ -18,12 +18,15 @@ struct DetailView: View {
     @FocusState private var isFocused: Bool
     @State private var showsModelSelectionSheet = false
     @State private var selectedChatModel: Model = .gpt4_0613
+    var availableAssistants: [Assistant]
 
     private let availableChatModels: [Model] = [.gpt3_5Turbo0613, .gpt4_0613]
 
     let conversation: Conversation
     let error: Error?
     let sendMessage: (String, Model) -> Void
+
+    @Binding var isSendingMessage: Bool
 
     private var fillColor: Color {
         #if os(iOS)
@@ -65,11 +68,12 @@ struct DetailView: View {
 
                     inputBar(scrollViewProxy: scrollViewProxy)
                 }
-                .navigationTitle("Chat")
+                .navigationTitle(conversation.type == .assistant ? "Assistant: \(currentAssistantName())" : "Chat")
                 .safeAreaInset(edge: .top) {
                     HStack {
+                        // TODO: Replace with actual gpt-4-1106-preview model.
                         Text(
-                            "Model: \(selectedChatModel)"
+                            "Model: \(conversation.type == .assistant ? "gpt-4-1106-preview" : selectedChatModel)"
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -79,11 +83,28 @@ struct DetailView: View {
                     .padding(.vertical, 8)
                 }
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            showsModelSelectionSheet.toggle()
-                        }) {
-                            Image(systemName: "cpu")
+                    if conversation.type == .assistant {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+
+                            Menu {
+                                ForEach(availableAssistants, id: \.self) { item in
+                                    Button(item.name) {
+                                        print("Select assistant")
+                                        //selectedItem = item
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "eyeglasses")
+                            }
+                        }
+                    }
+                    if conversation.type == .normal {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                showsModelSelectionSheet.toggle()
+                            }) {
+                                Image(systemName: "cpu")
+                            }
                         }
                     }
                 }
@@ -165,18 +186,24 @@ struct DetailView: View {
             }
             .padding(.leading)
 
-            Button(action: {
-                withAnimation {
-                    tapSendMessage(scrollViewProxy: scrollViewProxy)
+            if isSendingMessage {
+                 ProgressView()
+                     .progressViewStyle(CircularProgressViewStyle())
+                     .padding(.trailing)
+            } else {
+                Button(action: {
+                    withAnimation {
+                        tapSendMessage(scrollViewProxy: scrollViewProxy)
+                    }
+                }) {
+                    Image(systemName: "paperplane")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                        .padding(.trailing)
                 }
-            }) {
-                Image(systemName: "paperplane")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-                    .padding(.trailing)
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.bottom)
     }
@@ -195,6 +222,10 @@ struct DetailView: View {
 //        if let lastMessage = conversation.messages.last {
 //            scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
 //        }
+    }
+
+    func currentAssistantName() -> String {
+        availableAssistants.filter { conversation.assistantId == $0.id }.first?.name ?? ""
     }
 }
 
@@ -261,6 +292,7 @@ struct ChatBubble: View {
 struct DetailView_Previews: PreviewProvider {
     static var previews: some View {
         DetailView(
+            availableAssistants: [],
             conversation: Conversation(
                 id: "1",
                 messages: [
@@ -277,7 +309,7 @@ struct DetailView_Previews: PreviewProvider {
                 ]
             ),
             error: nil,
-            sendMessage: { _, _ in }
+            sendMessage: { _, _ in }, isSendingMessage: Binding.constant(false)
         )
     }
 }

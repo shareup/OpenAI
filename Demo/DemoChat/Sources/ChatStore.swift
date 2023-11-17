@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import OpenAI
+import SwiftUI
 
 public final class ChatStore: ObservableObject {
     public var openAIClient: OpenAIProtocol
@@ -16,6 +17,15 @@ public final class ChatStore: ObservableObject {
     @Published var conversations: [Conversation] = []
     @Published var conversationErrors: [Conversation.ID: Error] = [:]
     @Published var selectedConversationID: Conversation.ID?
+
+    // Used for assistants API state.
+    private var timer: Timer?
+    private var timeInterval: TimeInterval = 1.0
+    private var currentRunId: String?
+    private var currentThreadId: String?
+    private var currentConversationId: String?
+
+    @Published var isSendingMessage = false
 
     var selectedConversation: Conversation? {
         selectedConversationID.flatMap { id in
@@ -39,19 +49,19 @@ public final class ChatStore: ObservableObject {
     }
 
     // MARK: - Events
-    func createConversation() {
-        let conversation = Conversation(id: idProvider(), messages: [])
+    func createConversation(type: ConversationType = .normal, assistantId: String? = nil) {
+        let conversation = Conversation(id: idProvider(), messages: [], type: type, assistantId: assistantId)
         conversations.append(conversation)
     }
-    
+
     func selectConversation(_ conversationId: Conversation.ID?) {
         selectedConversationID = conversationId
     }
-    
+
     func deleteConversation(_ conversationId: Conversation.ID) {
         conversations.removeAll(where: { $0.id == conversationId })
     }
-    
+
     @MainActor
     func sendMessage(
         _ message: Message,
@@ -61,14 +71,59 @@ public final class ChatStore: ObservableObject {
         guard let conversationIndex = conversations.firstIndex(where: { $0.id == conversationId }) else {
             return
         }
-        conversations[conversationIndex].messages.append(message)
 
-        await completeChat(
-            conversationId: conversationId,
-            model: model
-        )
+        switch conversations[conversationIndex].type  {
+        case .normal:
+            conversations[conversationIndex].messages.append(message)
+
+            await completeChat(
+                conversationId: conversationId,
+                model: model
+            )
+        // For assistant case we send chats to thread and then poll, polling will receive sent chat + new assistant messages.
+        case .assistant:
+
+            // First message in an assistant thread.
+            if conversations[conversationIndex].messages.count == 0 {
+                do {
+                    let threadsQuery = ThreadsQuery(messages: [Chat(role: message.role, content: message.content)])
+                    let threadsResult = try await openAIClient.threads(query: threadsQuery)
+
+                    guard let currentAssistantId = conversations[conversationIndex].assistantId else { return print("No assistant selected.")}
+
+                    let runsQuery = RunsQuery(assistantId:  currentAssistantId)
+                    let runsResult = try await openAIClient.runs(threadId: threadsResult.id, query: runsQuery)
+
+                    // check in on the run every time the poller gets hit.
+                    startPolling(conversationId: conversationId, runId: runsResult.id, threadId: threadsResult.id)
+                }
+                catch {
+                    print("error: \(error) creating thread w/ message")
+                }
+            }
+            // Subsequent messages on the assistant thread.
+            else {
+                do {
+                    guard let currentThreadId else { return print("No thread to add message to.")}
+
+                    let _ = try await openAIClient.threadsAddMessage(threadId: currentThreadId,
+                                                                     query: ThreadAddMessageQuery(role: message.role.rawValue, content: message.content))
+
+                    guard let currentAssistantId = conversations[conversationIndex].assistantId else { return print("No assistant selected.")}
+
+                    let runsQuery = RunsQuery(assistantId: currentAssistantId)
+                    let runsResult = try await openAIClient.runs(threadId: currentThreadId, query: runsQuery)
+
+                    // check in on the run every time the poller gets hit.
+                    startPolling(conversationId: conversationId, runId: runsResult.id, threadId: currentThreadId)
+                }
+                catch {
+                    print("error: \(error) adding to thread w/ message")
+                }
+            }
+        }
     }
-    
+
     @MainActor
     func completeChat(
         conversationId: Conversation.ID,
@@ -77,7 +132,7 @@ public final class ChatStore: ObservableObject {
         guard let conversation = conversations.first(where: { $0.id == conversationId }) else {
             return
         }
-                
+
         conversationErrors[conversationId] = nil
 
         do {
@@ -89,16 +144,16 @@ public final class ChatStore: ObservableObject {
                 name: "getWeatherData",
                 description: "Get the current weather in a given location",
                 parameters: .init(
-                  type: .object,
-                  properties: [
-                    "location": .init(type: .string, description: "The city and state, e.g. San Francisco, CA")
-                  ],
-                  required: ["location"]
+                    type: .object,
+                    properties: [
+                        "location": .init(type: .string, description: "The city and state, e.g. San Francisco, CA")
+                    ],
+                    required: ["location"]
                 )
             )
 
             let functions = [weatherFunction]
-            
+
             let chatsStream: AsyncThrowingStream<ChatStreamResult, Error> = openAIClient.chatsStream(
                 query: ChatQuery(
                     model: model,
@@ -117,10 +172,10 @@ public final class ChatStore: ObservableObject {
                     // Function calls are also streamed, so we need to accumulate.
                     if let functionCallDelta = choice.delta.functionCall {
                         if let nameDelta = functionCallDelta.name {
-                          functionCallName += nameDelta
+                            functionCallName += nameDelta
                         }
                         if let argumentsDelta = functionCallDelta.arguments {
-                          functionCallArguments += argumentsDelta
+                            functionCallArguments += argumentsDelta
                         }
                     }
                     var messageText = choice.delta.content ?? ""
@@ -151,6 +206,64 @@ public final class ChatStore: ObservableObject {
             }
         } catch {
             conversationErrors[conversationId] = error
+        }
+    }
+
+    // Polling
+    func startPolling(conversationId: Conversation.ID, runId: String, threadId: String) {
+        currentRunId = runId
+        currentThreadId = threadId
+        currentConversationId = conversationId
+        isSendingMessage = true
+        timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.timerFired()
+            }
+        }
+    }
+
+    func stopPolling() {
+        isSendingMessage = false
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func timerFired() {
+        guard let conversationIndex = conversations.firstIndex(where: { $0.id == currentConversationId }) else {
+            return
+        }
+
+        Task {
+            let result = try await openAIClient.runRetrieve(threadId: currentThreadId ?? "", runId: currentRunId ?? "")
+
+            switch result.status {
+            // Get threadsMesages.
+            case "completed":
+                stopPolling()
+
+                var before: String?
+                if let lastMessageId = self.conversations[conversationIndex].messages.last?.id {
+                    before = lastMessageId
+                }
+
+                let result = try await openAIClient.threadsMessages(threadId: currentThreadId ?? "", before: before)
+
+                DispatchQueue.main.async {
+                    for item in result.data.reversed() {
+                        let role = item.role
+                        for innerItem in item.content {
+                            let message = Message(id: item.id, role: Chat.Role(rawValue: role) ?? .user, content: innerItem.text.value, createdAt: Date())
+                            self.conversations[conversationIndex].messages.append(message)
+                        }
+                    }
+                }
+                break
+            case "failed":
+                stopPolling()
+                break
+            default:
+                break
+            }
         }
     }
 }

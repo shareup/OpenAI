@@ -230,4 +230,29 @@ public protocol OpenAIProtocol {
                          Returns a `Result` of type `AudioTranslationResult` if successful, or an `Error` if an error occurs.
      **/
     func audioTranslations(query: AudioTranslationQuery, completion: @escaping (Result<AudioTranslationResult, Error>) -> Void)
+    
+    //1106
+
+    // TODO: Assistant Docs
+    func assistants(query: AssistantsQuery?, method: String, completion: @escaping (Result<AssistantsResult, Error>) -> Void)
+    
+    // TODO: Threads Docs
+    func threads(query: ThreadsQuery, completion: @escaping (Result<ThreadsResult, Error>) -> Void)
+
+    // TODO: Runs Docs
+    func runs(threadId: String, query: RunsQuery, completion: @escaping (Result<RunsResult, Error>) -> Void)
+
+    // TODO: Runs Retrieve Docs
+    func runRetrieve(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveResult, Error>) -> Void)
+
+    // TODO: Threads Messages Docs
+    func threadsMessages(threadId: String, before: String?, completion: @escaping (Result<ThreadsMessagesResult, Error>) -> Void)
+
+    // TODO: Threads Add Message Docs
+    func threadsAddMessage(threadId: String, query: ThreadAddMessageQuery, completion: @escaping (Result<ThreadAddMessageResult, Error>) -> Void)
+
+    // TODO: Files Docs
+    func files(query: FilesQuery, completion: @escaping (Result<FilesResult, Error>) -> Void)
+
+    // 1106 end
 }
