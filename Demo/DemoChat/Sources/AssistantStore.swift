@@ -29,17 +29,9 @@ public final class AssistantStore: ObservableObject {
     @MainActor
     func createAssistant(name: String, description: String, instructions: String, codeInterpreter: Bool, retrievel: Bool, fileIds: [String]? = nil) async -> String? {
         do {
-            var tools = [Tool]()
-            if codeInterpreter {
-                tools.append(Tool(toolType: "code_interpreter"))
-            }
-            if retrievel {
-                tools.append(Tool(toolType: "retrieval"))
-            }
-
-            // TODO: Replace with actual gpt-4-1106-preview model.
-            let query = AssistantsQuery(model: Model("gpt-4-1106-preview"), name: name, description: description, instructions: instructions, tools:tools, fileIds: fileIds)
-            let response = try await openAIClient.assistants(query: query, method: "POST")
+            let tools = createToolsArray(codeInterpreter: codeInterpreter, retrieval: retrievel)
+            let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools:tools, fileIds: fileIds)
+            let response = try await openAIClient.assistants(query: query, method: "POST", after: nil)
 
             // Returns assistantId
             return response.id
@@ -52,18 +44,41 @@ public final class AssistantStore: ObservableObject {
     }
 
     @MainActor
-    func getAssistants(limit: Int) async -> [Assistant] {
+    func modifyAssistant(asstId: String, name: String, description: String, instructions: String, codeInterpreter: Bool, retrievel: Bool, fileIds: [String]? = nil) async -> String? {
         do {
-            let response = try await openAIClient.assistants(query: nil, method: "GET")
+            let tools = createToolsArray(codeInterpreter: codeInterpreter, retrieval: retrievel)
+            let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools:tools, fileIds: fileIds)
+            let response = try await openAIClient.assistantModify(query: query, asstId: asstId)
+
+            // Returns assistantId
+            return response.id
+
+        } catch {
+            // TODO: Better error handling
+            print(error.localizedDescription)
+        }
+        return nil
+    }
+
+    @MainActor
+    func getAssistants(limit: Int = 20, after: String? = nil) async -> [Assistant] {
+        do {
+            let response = try await openAIClient.assistants(query: nil, method: "GET", after: after)
 
             var assistants = [Assistant]()
             for result in response.data ?? [] {
-                let codeInterpreter = response.tools?.filter { $0.toolType == "code_interpreter" }.first != nil
-                let retrieval = response.tools?.filter { $0.toolType == "retrieval" }.first != nil
+                let codeInterpreter = result.tools?.filter { $0.toolType == "code_interpreter" }.first != nil
+                let retrieval = result.tools?.filter { $0.toolType == "retrieval" }.first != nil
+                let fileIds = result.fileIds ?? []
 
-                assistants.append(Assistant(id: result.id, name: result.name, description: result.description, instructions: result.instructions, codeInterpreter: codeInterpreter, retrieval: retrieval))
+                assistants.append(Assistant(id: result.id, name: result.name, description: result.description, instructions: result.instructions, codeInterpreter: codeInterpreter, retrieval: retrieval, fileIds: fileIds))
             }
-            availableAssistants = assistants
+            if after == nil {
+                availableAssistants = assistants
+            }
+            else {
+                availableAssistants = availableAssistants + assistants
+            }
             return assistants
 
         } catch {
@@ -90,5 +105,16 @@ public final class AssistantStore: ObservableObject {
             print("error = \(error)")
             return nil
         }
+    }
+
+    func createToolsArray(codeInterpreter: Bool, retrieval: Bool) -> [Tool] {
+        var tools = [Tool]()
+        if codeInterpreter {
+            tools.append(Tool(toolType: "code_interpreter"))
+        }
+        if retrieval {
+            tools.append(Tool(toolType: "retrieval"))
+        }
+        return tools
     }
 }

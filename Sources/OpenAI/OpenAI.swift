@@ -77,14 +77,17 @@ final public class OpenAI: OpenAIProtocol {
         performRequest(request: JSONRequest<ThreadsResult>(body: query, url: buildURL(path: .threads)), completion: completion)
     }
 
-    public func assistants(query: AssistantsQuery?, method: String, completion: @escaping (Result<AssistantsResult, Error>) -> Void) {
-        performRequest(request: JSONRequest<AssistantsResult>(body: query, url: buildURL(path: .assistants), method: method), completion: completion)
+    public func assistants(query: AssistantsQuery?, method: String, after: String?, completion: @escaping (Result<AssistantsResult, Error>) -> Void) {
+        performRequest(request: JSONRequest<AssistantsResult>(body: query, url: buildURL(path: .assistants, after: after), method: method), completion: completion)
+    }
+
+    public func assistantModify(query: AssistantsQuery, asstId: String, completion: @escaping (Result<AssistantsResult, Error>) -> Void) {
+        performRequest(request: JSONRequest<AssistantsResult>(body: query, url: buildAssistantURL(path: .assistantsModify, assistantId: asstId)), completion: completion)
     }
 
     public func files(query: FilesQuery, completion: @escaping (Result<FilesResult, Error>) -> Void) {
         performRequest(request: MultipartFormDataRequest<FilesResult>(body: query, url: buildURL(path: .files)), completion: completion)
     }
-
     // END UPDATES FROM 11-06-23
 
     public func completions(query: CompletionsQuery, completion: @escaping (Result<CompletionsResult, Error>) -> Void) {
@@ -210,11 +213,14 @@ extension OpenAI {
 
 extension OpenAI {
     
-    func buildURL(path: String) -> URL {
+    func buildURL(path: String, after: String? = nil) -> URL {
         var components = URLComponents()
         components.scheme = "https"
         components.host = configuration.host
         components.path = path
+        if let after {
+            components.queryItems = [URLQueryItem(name: "after", value: after)]
+        }
         return components.url!
     }
 
@@ -237,15 +243,22 @@ extension OpenAI {
                               .replacingOccurrences(of: "RUN_ID", with: runId)
         return components.url!
     }
+
+    func buildAssistantURL(path: String, assistantId: String) -> URL {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = configuration.host
+        components.path = path.replacingOccurrences(of: "ASST_ID", with: assistantId)
+
+        return components.url!
+    }
 }
 
 typealias APIPath = String
 extension APIPath {
     // 1106
     static let assistants = "/v1/assistants"
-    // TODO: Implement Assistant Modify
     static let assistantsModify = "/v1/assistants/ASST_ID"
-
     static let threads = "/v1/threads"
     static let runs = "/v1/threads/THREAD_ID/runs"
     static let runRetrieve = "/v1/threads/THREAD_ID/runs/RUN_ID"

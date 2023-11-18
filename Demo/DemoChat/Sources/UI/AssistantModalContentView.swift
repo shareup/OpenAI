@@ -14,6 +14,7 @@ struct AssistantModalContentView: View {
 
     @Binding var codeInterpreter: Bool
     @Binding var retrieval: Bool
+    @Binding var fileIds: [String]
 
     var modify: Bool
 
@@ -25,7 +26,6 @@ struct AssistantModalContentView: View {
 
     var onCommit: () -> Void
     var onFileUpload: () -> Void
-
 
     var body: some View {
         NavigationView {
@@ -70,7 +70,7 @@ struct AssistantModalContentView: View {
                     }
                 }
             }
-            .navigationTitle("Enter Assistant Details")
+            .navigationTitle("\(modify ? "Edit" : "Enter") Assistant Details")
             .navigationBarItems(
                 leading: Button("Cancel") {
                     dismiss()

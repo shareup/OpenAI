@@ -217,10 +217,27 @@ public extension OpenAIProtocol {
     // 1106
     func assistants(
         query: AssistantsQuery?,
-        method: String
+        method: String,
+        after: String?
     ) async throws -> AssistantsResult {
         try await withCheckedThrowingContinuation { continuation in
-            assistants(query: query, method: method) { result in
+            assistants(query: query, method: method, after: after) { result in
+                switch result {
+                case let .success(success):
+                    return continuation.resume(returning: success)
+                case let .failure(failure):
+                    return continuation.resume(throwing: failure)
+                }
+            }
+        }
+    }
+
+    func assistantModify(
+        query: AssistantsQuery,
+        asstId: String
+    ) async throws -> AssistantsResult {
+        try await withCheckedThrowingContinuation { continuation in
+            assistantModify(query: query, asstId: asstId) { result in
                 switch result {
                 case let .success(success):
                     return continuation.resume(returning: success)

@@ -61,6 +61,7 @@ struct APIProvidedView: View {
             let client = OpenAI(apiToken: newApiKey)
             chatStore.openAIClient = client
             imageStore.openAIClient = client
+            assistantStore.openAIClient = client
             miscStore.openAIClient = client
         }
     }

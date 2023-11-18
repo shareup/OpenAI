@@ -23,6 +23,7 @@ public struct ChatView: View {
 
     @State private var codeInterpreter: Bool = false
     @State private var retrieval: Bool = false
+    @State private var fileIds: [String] = []
 
 
     @State private var isPickerPresented: Bool = false
@@ -64,7 +65,6 @@ public struct ChatView: View {
                         } label: {
                             Image(systemName: "plus")
                         }
-
                         .buttonStyle(.borderedProminent)
                     }
                 }
@@ -92,7 +92,7 @@ public struct ChatView: View {
             }
             .sheet(isPresented: $isModalPresented) {
                 AssistantModalContentView(name: $name, description: $description, customInstructions: $customInstructions,
-                                          codeInterpreter: $codeInterpreter, retrieval: $retrieval, modify: false, isPickerPresented: $isPickerPresented, selectedFileURL: $fileURL) {
+                                          codeInterpreter: $codeInterpreter, retrieval: $retrieval, fileIds: $fileIds, modify: false, isPickerPresented: $isPickerPresented, selectedFileURL: $fileURL) {
                     Task {
                         await handleOKTap()
                     }
@@ -111,16 +111,6 @@ public struct ChatView: View {
     }
     func handleOKTap() async {
         
-        // Reset state for Assistant creator.
-        name = ""
-        description = ""
-        customInstructions = ""
-
-        codeInterpreter = false
-        retrieval = false
-        fileURL = nil
-        uploadedFileId = nil
-        
         var fileIds = [String]()
         if let fileId = uploadedFileId {
             fileIds.append(fileId)
@@ -132,6 +122,16 @@ public struct ChatView: View {
             print("failed to create Assistant.")
             return
         }
+
+        // Reset state for Assistant creator.
+        name = ""
+        description = ""
+        customInstructions = ""
+
+        codeInterpreter = false
+        retrieval = false
+        fileURL = nil
+        uploadedFileId = nil
 
         store.createConversation(type: .assistant, assistantId: asstId)
     }

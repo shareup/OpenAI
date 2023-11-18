@@ -8,13 +8,14 @@
 import Foundation
 
 struct Assistant: Hashable {
-    init(id: String, name: String, description: String? = nil, instructions: String? = nil, codeInterpreter: Bool, retrieval: Bool) {
+    init(id: String, name: String, description: String? = nil, instructions: String? = nil, codeInterpreter: Bool, retrieval: Bool, fileIds: [String]? = nil) {
         self.id = id
         self.name = name
         self.description = description
         self.instructions = instructions
         self.codeInterpreter = codeInterpreter
         self.retrieval = retrieval
+        self.fileIds = fileIds
     }
     
     typealias ID = String
@@ -23,7 +24,7 @@ struct Assistant: Hashable {
     let name: String
     let description: String?
     let instructions: String?
-
+    let fileIds: [String]?
     var codeInterpreter: Bool
     var retrieval: Bool
 }

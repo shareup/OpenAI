@@ -24,9 +24,12 @@ public struct AssistantsView: View {
     @State private var name: String = ""
     @State private var description: String = ""
     @State private var customInstructions: String = ""
+    @State private var fileIds: [String] = []
 
     @State private var codeInterpreter: Bool = false
     @State private var retrieval: Bool = false
+    @State var isLoadingMore = false
+    @State private var isModalPresented = false
 
     public init(store: ChatStore, assistantStore: AssistantStore) {
         self.store = store
@@ -37,11 +40,13 @@ public struct AssistantsView: View {
         ZStack {
             NavigationSplitView {
                 AssistantsListView(
-                    conversations: $assistantStore.availableAssistants, selectedAssistantId: Binding<String?>(
+                    assistants: $assistantStore.availableAssistants, selectedAssistantId: Binding<String?>(
                         get: {
                             assistantStore.selectedAssistantId
 
                         }, set: { newId in
+                            guard newId != nil else { return }
+
                             assistantStore.selectAssistant(newId)
 
                             let selectedAssistant = assistantStore.availableAssistants.filter { $0.id == assistantStore.selectedAssistantId }.first
@@ -51,9 +56,12 @@ public struct AssistantsView: View {
                             customInstructions = selectedAssistant?.instructions ?? ""
                             codeInterpreter = selectedAssistant?.codeInterpreter ?? false
                             retrieval = selectedAssistant?.retrieval ?? false
+                            
+                            isModalPresented = true
 
-
-                        })
+                        }), onLoadMoreAssistants: {
+                            loadMoreAssistants()
+                        }, isLoadingMore: $isLoadingMore
                 )
                 .toolbar {
                     ToolbarItem(
@@ -62,7 +70,7 @@ public struct AssistantsView: View {
                         Menu {
                             Button("Get Assistants") {
                                 Task {
-                                    let _ = await assistantStore.getAssistants(limit: 20)
+                                    let _ = await assistantStore.getAssistants()
                                 }
                             }
                         } label: {
@@ -73,12 +81,12 @@ public struct AssistantsView: View {
                     }
                 }
             } detail: {
-                // TODO: Allow modifying Assistant.
-                if let selectedAssistantId = assistantStore.selectedAssistantId {
 
-
+            }
+            .sheet(isPresented: $isModalPresented) {
+                if let _ = assistantStore.selectedAssistantId {
                     AssistantModalContentView(name: $name, description: $description, customInstructions: $customInstructions,
-                                              codeInterpreter: $codeInterpreter, retrieval: $retrieval, modify: true, isPickerPresented: $isPickerPresented, selectedFileURL: $fileURL) {
+                                              codeInterpreter: $codeInterpreter, retrieval: $retrieval, fileIds: $fileIds, modify: true, isPickerPresented: $isPickerPresented, selectedFileURL: $fileURL) {
                         Task {
                             await handleOKTap()
                         }
@@ -95,14 +103,15 @@ public struct AssistantsView: View {
     }
 
     func handleOKTap() async {
+        guard let selectedAssistantId = assistantStore.selectedAssistantId else { return print("Cannot modify assistant, not selected.") }
 
-        // When OK is tapped that means we should save the modified assistant and start a new thread.
+        // When OK is tapped that means we should save the modified assistant and start a new thread with it.
         var fileIds = [String]()
         if let fileId = uploadedFileId {
             fileIds.append(fileId)
         }
 
-        let asstId = await assistantStore.createAssistant(name: name, description: description, instructions: customInstructions, codeInterpreter: codeInterpreter, retrievel: retrieval, fileIds: fileIds.isEmpty ? nil : fileIds)
+        let asstId = await assistantStore.modifyAssistant(asstId: selectedAssistantId, name: name, description: description, instructions: customInstructions, codeInterpreter: codeInterpreter, retrievel: retrieval, fileIds: fileIds.isEmpty ? nil : fileIds)
 
         guard let asstId else {
             print("failed to create Assistant.")
@@ -110,5 +119,18 @@ public struct AssistantsView: View {
         }
 
         store.createConversation(type: .assistant, assistantId: asstId)
+    }
+
+    func loadMoreAssistants() {
+        guard !isLoadingMore else { return }
+
+        isLoadingMore = true
+        let lastAssistantId = assistantStore.availableAssistants.last?.id ?? ""
+
+        Task {
+            // Fetch more assistants and append to the list
+            let _ = await assistantStore.getAssistants(after: lastAssistantId)
+            isLoadingMore = false
+        }
     }
 }

@@ -351,21 +351,37 @@ class OpenAITests: XCTestCase {
 
     // 1106
     func testAssistantQuery() async throws {
-        let query = AssistantsQuery(model: Model("gpt-4-1106-preview"), name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
-        let expectedResult = AssistantsResult(id: "asst_1234", data: [AssistantsResult.AssistantContent(id: "asst_9876", name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.")], tools: [])
+        let query = AssistantsQuery(model: .gpt4_1106_preview, name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
+        let expectedResult = AssistantsResult(id: "asst_1234", data: [AssistantsResult.AssistantContent(id: "asst_9876", name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: nil, fileIds: nil)], tools: [])
         try self.stub(result: expectedResult)
 
-        let result = try await openAI.assistants(query: query, method: "POST")
+        let result = try await openAI.assistants(query: query, method: "POST", after: nil)
         XCTAssertEqual(result, expectedResult)
     }
 
     func testAssistantQueryError() async throws {
-        let query = AssistantsQuery(model: Model("gpt-4-1106-preview"), name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
+        let query = AssistantsQuery(model: .gpt4_1106_preview, name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
 
         let inError = APIError(message: "foo", type: "bar", param: "baz", code: "100")
         self.stub(error: inError)
 
-        let apiError: APIError = try await XCTExpectError { try await openAI.assistants(query: query, method: "POST") }
+        let apiError: APIError = try await XCTExpectError { try await openAI.assistants(query: query, method: "POST", after: nil) }
+        XCTAssertEqual(inError, apiError)
+    }
+
+    func testListAssistantQuery() async throws {
+        let expectedResult = AssistantsResult(id: nil, data: [AssistantsResult.AssistantContent(id: "asst_9876", name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: nil, fileIds: nil)], tools: nil)
+        try self.stub(result: expectedResult)
+
+        let result = try await openAI.assistants(query: nil, method: "GET", after: nil)
+        XCTAssertEqual(result, expectedResult)
+    }
+
+    func testListAssistantQueryError() async throws {
+        let inError = APIError(message: "foo", type: "bar", param: "baz", code: "100")
+        self.stub(error: inError)
+
+        let apiError: APIError = try await XCTExpectError { try await openAI.assistants(query: nil, method: "GET", after: nil) }
         XCTAssertEqual(inError, apiError)
     }
 

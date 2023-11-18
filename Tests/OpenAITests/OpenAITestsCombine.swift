@@ -126,11 +126,11 @@ final class OpenAITestsCombine: XCTestCase {
 
     // 1106
     func testAssistantQuery() throws {
-        let query = AssistantsQuery(model: Model("gpt-4-1106-preview"), name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
-        let expectedResult = AssistantsResult(id: "asst_1234", data: [AssistantsResult.AssistantContent(id: "asst_9876", name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.")], tools: [])
+        let query = AssistantsQuery(model: .gpt4_1106_preview, name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: [])
+        let expectedResult = AssistantsResult(id: "asst_1234", data: [AssistantsResult.AssistantContent(id: "asst_9876", name: "My New Assistant", description: "Assistant Description", instructions: "You are a helpful assistant.", tools: nil, fileIds: nil)], tools: [])
         try self.stub(result: expectedResult)
 
-        let result = try awaitPublisher(openAI.assistants(query: query, method: "POST"))
+        let result = try awaitPublisher(openAI.assistants(query: query, method: "POST", after: nil))
         XCTAssertEqual(result, expectedResult)
     }
 

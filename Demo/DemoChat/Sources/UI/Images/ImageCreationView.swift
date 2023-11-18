@@ -57,12 +57,12 @@ public struct ImageCreationView: View {
             if !$store.images.isEmpty {
                 Section("Images") {
                     ForEach($store.images, id: \.self) { image in
-                        let urlString = image.wrappedValue.url
-                        if let imageURL = URL(string: urlString ?? ""), UIApplication.shared.canOpenURL(imageURL) {
+                        let urlString = image.wrappedValue.url ?? ""
+                        if let imageURL = URL(string: urlString), UIApplication.shared.canOpenURL(imageURL) {
                             LinkPreview(previewURL: imageURL)
                                 .aspectRatio(contentMode: .fit)
                         } else {
-                            Text(urlString ?? "")
+                            Text(urlString)
                                 .foregroundStyle(.secondary)
                         }
                     }

@@ -71,9 +71,8 @@ struct DetailView: View {
                 .navigationTitle(conversation.type == .assistant ? "Assistant: \(currentAssistantName())" : "Chat")
                 .safeAreaInset(edge: .top) {
                     HStack {
-                        // TODO: Replace with actual gpt-4-1106-preview model.
                         Text(
-                            "Model: \(conversation.type == .assistant ? "gpt-4-1106-preview" : selectedChatModel)"
+                            "Model: \(conversation.type == .assistant ? Model.gpt4_1106_preview : selectedChatModel)"
                         )
                         .font(.caption)
                         .foregroundColor(.secondary)
