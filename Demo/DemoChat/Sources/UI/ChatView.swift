@@ -15,22 +15,6 @@ public struct ChatView: View {
     @Environment(\.dateProviderValue) var dateProvider
     @Environment(\.idProviderValue) var idProvider
 
-
-    @State private var isModalPresented = false
-    @State private var name: String = ""
-    @State private var description: String = ""
-    @State private var customInstructions: String = ""
-
-    @State private var codeInterpreter: Bool = false
-    @State private var retrieval: Bool = false
-    @State private var fileIds: [String] = []
-
-
-    @State private var isPickerPresented: Bool = false
-    @State private var fileURL: URL?
-    @State private var uploadedFileId: String?
-
-
     public init(store: ChatStore, assistantStore: AssistantStore) {
         self.store = store
         self.assistantStore = assistantStore
@@ -52,15 +36,9 @@ public struct ChatView: View {
                     ToolbarItem(
                         placement: .primaryAction
                     ) {
-
                         Menu {
                             Button("Create Chat") {
                                 store.createConversation()
-
-                            }
-                            Button("Create Assistant") {
-                                isModalPresented = true
-
                             }
                         } label: {
                             Image(systemName: "plus")
@@ -90,49 +68,6 @@ public struct ChatView: View {
                     )
                 }
             }
-            .sheet(isPresented: $isModalPresented) {
-                AssistantModalContentView(name: $name, description: $description, customInstructions: $customInstructions,
-                                          codeInterpreter: $codeInterpreter, retrieval: $retrieval, fileIds: $fileIds, modify: false, isPickerPresented: $isPickerPresented, selectedFileURL: $fileURL) {
-                    Task {
-                        await handleOKTap()
-                    }
-                } onFileUpload: {
-                    Task {
-                        guard let fileURL else { return }
-
-                        uploadedFileId = await assistantStore.uploadFile(url: fileURL)
-                        if uploadedFileId == nil {
-                            print("Failed to upload")
-                        }
-                    }
-                }
-            }
         }
-    }
-    func handleOKTap() async {
-        
-        var fileIds = [String]()
-        if let fileId = uploadedFileId {
-            fileIds.append(fileId)
-        }
-
-        let asstId = await assistantStore.createAssistant(name: name, description: description, instructions: customInstructions, codeInterpreter: codeInterpreter, retrievel: retrieval, fileIds: fileIds.isEmpty ? nil : fileIds)
-
-        guard let asstId else {
-            print("failed to create Assistant.")
-            return
-        }
-
-        // Reset state for Assistant creator.
-        name = ""
-        description = ""
-        customInstructions = ""
-
-        codeInterpreter = false
-        retrieval = false
-        fileURL = nil
-        uploadedFileId = nil
-
-        store.createConversation(type: .assistant, assistantId: asstId)
     }
 }

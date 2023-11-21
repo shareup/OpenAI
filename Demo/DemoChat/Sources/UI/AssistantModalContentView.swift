@@ -8,6 +8,11 @@
 import SwiftUI
 
 struct AssistantModalContentView: View {
+    enum Mode {
+        case modify
+        case create
+    }
+
     @Binding var name: String
     @Binding var description: String
     @Binding var customInstructions: String
@@ -15,14 +20,15 @@ struct AssistantModalContentView: View {
     @Binding var codeInterpreter: Bool
     @Binding var retrieval: Bool
     @Binding var fileIds: [String]
+    @Binding var isUploading: Bool
 
     var modify: Bool
 
     @Environment(\.dismiss) var dismiss
 
     @Binding var isPickerPresented: Bool
+    // If a file has been selected for uploading and is currently in progress, this is set.
     @Binding var selectedFileURL: URL?
-    
 
     var onCommit: () -> Void
     var onFileUpload: () -> Void
@@ -49,6 +55,16 @@ struct AssistantModalContentView: View {
                 Toggle(isOn: $retrieval, label: {
                     Text("Retrieval")
                 })
+
+                if !fileIds.isEmpty {
+                    ForEach(fileIds, id: \.self) { url in
+                        HStack {
+                            Text("File: \(url)")
+
+                        }
+                    }
+                }
+
                 if let selectedFileURL {
                     HStack {
                         Text("File: \(selectedFileURL.lastPathComponent)")

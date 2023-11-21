@@ -26,6 +26,19 @@ This repository contains Swift community-maintained implementation over [OpenAI]
     - [Audio](#audio)
         - [Audio Transcriptions](#audio-transcriptions)
         - [Audio Translations](#audio-translations)
+    - [Assistants](#assistants)
+        - [Create Assistant](#create-assistant)
+        - [Modify Assistant](#modify-assistant)
+        - [List Assistants](#list-assistants) 
+        - [Threads](#threads)
+          - [Create Thread](#create-thread)
+          - [Get Threads Messages](#get-threads-messages)
+          - [Add Message to Thread](#add-message-to-thread)
+        - [Runs](#runs)
+          - [Create Run](#create-run)
+          - [Retrieve Run](#retrieve-run)
+        - [Files](#files)
+          - [Upload File](#upload-file)
     - [Edits](#edits)
     - [Embeddings](#embeddings)
     - [Models](#models)
@@ -514,6 +527,112 @@ let result = try await openAI.imageVariations(query: query)
 ```
 
 Review [Images Documentation](https://platform.openai.com/docs/api-reference/images) for more info.
+
+### Assistants
+
+Review [Assistants Documentation](https://platform.openai.com/docs/api-reference/assistants) for more info.
+
+#### Create Assistant
+
+Example: Create Assistant
+```
+let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools: tools, fileIds: fileIds)
+openAI.assistants(query: query) { result in
+   //Handle response here
+}
+```
+
+#### Modify Assistant
+
+Example: Modify Assistant
+```
+let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools: tools, fileIds: fileIds)
+openAI.assistantModify(query: query, asstId: "asst_1234") { result in
+    //Handle response here
+}
+```
+
+#### List Assistants
+
+Example: List Assistants
+```
+openAI.assistants(query: nil, method: "GET") { result in
+   //Handle response here
+}
+```
+
+#### Threads
+
+Review [Threads Documentation](https://platform.openai.com/docs/api-reference/threads) for more info.
+
+##### Create Thread
+
+Example: Create Thread
+```
+let threadsQuery = ThreadsQuery(messages: [Chat(role: message.role, content: message.content)])
+openAI.threads(query: threadsQuery) { result in
+  //Handle response here
+}
+```
+
+##### Get Threads Messages
+
+Review [Messages Documentation](https://platform.openai.com/docs/api-reference/messages) for more info.
+
+Example: Get Threads Messages
+```
+openAI.threadsMessages(threadId: currentThreadId, before: nil) { result in
+  //Handle response here
+}
+```
+
+##### Add Message to Thread
+
+Example: Add Message to Thread
+```
+let query = ThreadAddMessageQuery(role: message.role.rawValue, content: message.content)
+openAI.threadsAddMessage(threadId: currentThreadId, query: query) { result in
+  //Handle response here
+}
+```
+
+#### Runs
+
+Review [Runs Documentation](https://platform.openai.com/docs/api-reference/runs) for more info.
+
+##### Create Run
+
+Example: Create Run
+```
+let runsQuery = RunsQuery(assistantId:  currentAssistantId)
+openAI.runs(threadId: threadsResult.id, query: runsQuery) { result in
+  //Handle response here
+}
+```
+
+##### Retrieve Run
+
+Example: Retrieve Run
+```
+openAI.runRetrieve(threadId: currentThreadId, runId: currentRunId) { result in
+  //Handle response here
+}
+```
+
+#### Files
+
+Review [Files Documentation](https://platform.openai.com/docs/api-reference/files) for more info.
+
+##### Upload file
+
+Example: Upload file
+```
+let query = FilesQuery(purpose: "assistants", file: fileData, fileName: url.lastPathComponent, contentType: "application/pdf")
+openAI.files(query: query) { result in
+  //Handle response here
+}
+```
+
 
 ### Audio
 

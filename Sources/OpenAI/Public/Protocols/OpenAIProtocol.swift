@@ -263,7 +263,7 @@ public protocol OpenAIProtocol {
     /**
     This function sends a assistants query to the OpenAI API and modifies an assistant. The Assistants API in this usage enables you to modify an assistant.
 
-    Example: Create Assistant
+    Example: Modify Assistant
     ```
     let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools: tools, fileIds: fileIds)
     openAI.assistantModify(query: query, asstId: "asst_1234") { result in
@@ -281,6 +281,7 @@ public protocol OpenAIProtocol {
     /**
      This function sends a threads query to the OpenAI API and creates a thread. The Threads API in this usage enables you to create a thread.
 
+     Example: Create Thread
      ```
      let threadsQuery = ThreadsQuery(messages: [Chat(role: message.role, content: message.content)])
      openAI.threads(query: threadsQuery) { result in
@@ -297,6 +298,7 @@ public protocol OpenAIProtocol {
     /**
      This function sends a runs query to the OpenAI API and creates a run. The Runs API in this usage enables you to create a run.
 
+     Example: Create Run
      ```
      let runsQuery = RunsQuery(assistantId:  currentAssistantId)
      openAI.runs(threadId: threadsResult.id, query: runsQuery) { result in
@@ -314,6 +316,7 @@ public protocol OpenAIProtocol {
     /**
      This function sends a thread id and run id to the OpenAI API and retrieves a run. The Runs API in this usage enables you to retrieve a run.
 
+     Example: Retrieve Run
      ```
      openAI.runRetrieve(threadId: currentThreadId, runId: currentRunId) { result in
         //Handle response here
@@ -330,7 +333,7 @@ public protocol OpenAIProtocol {
      This function sends a thread id and run id to the OpenAI API and retrieves a threads messages.
      The Thread API in this usage enables you to retrieve a threads messages.
 
-
+     Example: Get Threads Messages
      ```
      openAI.threadsMessages(threadId: currentThreadId, before: nil) { result in
         //Handle response here
@@ -347,6 +350,7 @@ public protocol OpenAIProtocol {
     /**
      This function sends a thread id and message contents to the OpenAI API and returns a run.
 
+     Example: Add Message to Thread
      ```
      let query = ThreadAddMessageQuery(role: message.role.rawValue, content: message.content)
      openAI.threadsAddMessage(threadId: currentThreadId, query: query) { result in
@@ -361,7 +365,20 @@ public protocol OpenAIProtocol {
      **/
     func threadsAddMessage(threadId: String, query: ThreadAddMessageQuery, completion: @escaping (Result<ThreadAddMessageResult, Error>) -> Void)
 
-    // TODO: Files Docs
+    /**
+     This function sends a purpose string, file contents, and fileName contents to the OpenAI API and returns a file id result.
+
+     Example: Upload file
+     ```
+     let query = FilesQuery(purpose: "assistants", file: fileData, fileName: url.lastPathComponent, contentType: "application/pdf")
+     openAI.files(query: query) { result in
+        //Handle response here
+     }
+     ```
+     - Parameter query: The `FilesQuery` instance, containing the information required for the files request.
+     - Parameter completion: The completion handler to be executed upon completion of the files request.
+                          Returns a `Result` of type `FilesResult` if successful, or an `Error` if an error occurs.
+     **/
     func files(query: FilesQuery, completion: @escaping (Result<FilesResult, Error>) -> Void)
 
     // END new functionality added to OpenAI Beta on 11-06-23 end

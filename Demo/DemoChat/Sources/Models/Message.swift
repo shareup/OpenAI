@@ -13,6 +13,9 @@ struct Message {
     var role: Chat.Role
     var content: String
     var createdAt: Date
+
+    var isLocal: Bool?
+
 }
 
 extension Message: Equatable, Codable, Hashable, Identifiable {}

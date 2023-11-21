@@ -85,6 +85,11 @@ public final class ChatStore: ObservableObject {
 
             // First message in an assistant thread.
             if conversations[conversationIndex].messages.count == 0 {
+
+                var localMessage = message
+                localMessage.isLocal = true
+                conversations[conversationIndex].messages.append(localMessage)
+
                 do {
                     let threadsQuery = ThreadsQuery(messages: [Chat(role: message.role, content: message.content)])
                     let threadsResult = try await openAIClient.threads(query: threadsQuery)
@@ -103,6 +108,11 @@ public final class ChatStore: ObservableObject {
             }
             // Subsequent messages on the assistant thread.
             else {
+
+                var localMessage = message
+                localMessage.isLocal = true
+                conversations[conversationIndex].messages.append(localMessage)
+
                 do {
                     guard let currentThreadId else { return print("No thread to add message to.")}
 
@@ -209,7 +219,7 @@ public final class ChatStore: ObservableObject {
         }
     }
 
-    // Polling
+    // Start Polling section
     func startPolling(conversationId: Conversation.ID, runId: String, threadId: String) {
         currentRunId = runId
         currentThreadId = threadId
@@ -239,11 +249,12 @@ public final class ChatStore: ObservableObject {
             switch result.status {
             // Get threadsMesages.
             case "completed":
-                stopPolling()
-
+                DispatchQueue.main.async {
+                    self.stopPolling()
+                }
                 var before: String?
-                if let lastMessageId = self.conversations[conversationIndex].messages.last?.id {
-                    before = lastMessageId
+                if let lastNonLocalMessage = self.conversations[conversationIndex].messages.last(where: { $0.isLocal == false }) {
+                    before = lastNonLocalMessage.id
                 }
 
                 let result = try await openAIClient.threadsMessages(threadId: currentThreadId ?? "", before: before)
@@ -252,18 +263,37 @@ public final class ChatStore: ObservableObject {
                     for item in result.data.reversed() {
                         let role = item.role
                         for innerItem in item.content {
-                            let message = Message(id: item.id, role: Chat.Role(rawValue: role) ?? .user, content: innerItem.text.value, createdAt: Date())
-                            self.conversations[conversationIndex].messages.append(message)
+                            let message = Message(
+                                id: item.id,
+                                role: Chat.Role(rawValue: role) ?? .user,
+                                content: innerItem.text.value,
+                                createdAt: Date(),
+                                isLocal: false // Messages from the server are not local
+                            )
+                            // Check if this message from the API matches a local message
+                            if let localMessageIndex = self.conversations[conversationIndex].messages.firstIndex(where: { $0.isLocal == true }) {
+                                
+                                // Replace the local message with the API message
+                                self.conversations[conversationIndex].messages[localMessageIndex] = message
+                            } else {
+                                // This is a new message from the server, append it
+
+                                self.conversations[conversationIndex].messages.append(message)
+                            }
                         }
                     }
                 }
                 break
             case "failed":
-                stopPolling()
+                DispatchQueue.main.async {
+
+                    self.stopPolling()
+                }
                 break
             default:
                 break
             }
         }
     }
+    // END Polling section
 }
