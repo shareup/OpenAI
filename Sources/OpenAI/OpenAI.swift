@@ -69,6 +69,10 @@ final public class OpenAI: OpenAIProtocol {
         performRequest(request: JSONRequest<RunRetreiveResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieve, threadId: threadId, runId: runId), method: "GET"), completion: completion)
     }
 
+    public func runRetrieveSteps(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void) {
+        performRequest(request: JSONRequest<RunRetreiveStepsResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieveSteps, threadId: threadId, runId: runId), method: "GET"), completion: completion)
+    }
+
     public func runs(threadId: String, query: RunsQuery, completion: @escaping (Result<RunsResult, Error>) -> Void) {
         performRequest(request: JSONRequest<RunsResult>(body: query, url: buildRunsURL(path: .runs, threadId: threadId)), completion: completion)
     }
@@ -173,7 +177,9 @@ extension OpenAI {
                 do {
 
                     let errorText = String(data: data, encoding: .utf8)
-
+                    
+                    // print(errorText)
+                    
                     let decoded = try JSONDecoder().decode(ResultType.self, from: data)
                     completion(.success(decoded))
                 } catch {
@@ -305,8 +311,11 @@ extension APIPath {
     static let threads = "/v1/threads"
     static let runs = "/v1/threads/THREAD_ID/runs"
     static let runRetrieve = "/v1/threads/THREAD_ID/runs/RUN_ID"
+    static let runRetrieveSteps = "/v1/threads/THREAD_ID/runs/RUN_ID/steps"
+
     static let threadsMessages = "/v1/threads/THREAD_ID/messages"
     static let files = "/v1/files"
+    
     // 1106 end
 
     static let completions = "/v1/completions"

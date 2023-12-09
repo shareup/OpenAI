@@ -32,6 +32,9 @@ public final class AssistantStore: ObservableObject {
             let tools = createToolsArray(codeInterpreter: codeInterpreter, retrieval: retrievel)
             let query = AssistantsQuery(model: Model.gpt4_1106_preview, name: name, description: description, instructions: instructions, tools:tools, fileIds: fileIds)
             let response = try await openAIClient.assistants(query: query, method: "POST", after: nil)
+            
+            // Refresh assistants with one just created (or modified)
+            let _ = await getAssistants()
 
             // Returns assistantId
             return response.id
@@ -95,10 +98,12 @@ public final class AssistantStore: ObservableObject {
     @MainActor
     func uploadFile(url: URL) async -> String? {
         do {
+
+            let mimeType = url.mimeType()
+
             let fileData = try Data(contentsOf: url)
 
-            // TODO: Support all the same types as openAI (not just pdf).
-            let result = try await openAIClient.files(query: FilesQuery(purpose: "assistants", file: fileData, fileName: url.lastPathComponent, contentType: "application/pdf"))
+            let result = try await openAIClient.files(query: FilesQuery(purpose: "assistants", file: fileData, fileName: url.lastPathComponent, contentType: mimeType))
             return result.id
         }
         catch {

@@ -43,7 +43,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Transcribe", systemImage: "mic")
             }
-            .tag(1)
+            .tag(2)
 
             ImageView(
                 store: imageStore
@@ -51,15 +51,15 @@ struct ContentView: View {
             .tabItem {
                 Label("Image", systemImage: "photo")
             }
-            .tag(2)
-            
+            .tag(3)
+
             MiscView(
                 store: miscStore
             )
             .tabItem {
                 Label("Misc", systemImage: "ellipsis")
             }
-            .tag(3)
+            .tag(4)
         }
     }
 }

@@ -54,6 +54,10 @@ struct DetailView: View {
                         }
                         .listRowSeparator(.hidden)
                     }
+                    // Tapping on the message bubble area should dismiss the keyboard.
+                    .onTapGesture {
+                        self.hideKeyboard()
+                    }
                     .listStyle(.plain)
                     .animation(.default, value: conversation.messages)
 //                    .onChange(of: conversation) { newValue in
@@ -225,6 +229,9 @@ struct DetailView: View {
 
     func currentAssistantName() -> String {
         availableAssistants.filter { conversation.assistantId == $0.id }.first?.name ?? ""
+    }
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

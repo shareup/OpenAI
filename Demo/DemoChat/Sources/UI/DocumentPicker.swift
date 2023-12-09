@@ -12,11 +12,10 @@ struct DocumentPicker: UIViewControllerRepresentable {
     var callback: (URL) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // TODO: Support all the same file types as openAI.
-        let supportedTypes: [UTType] = [UTType.pdf]
-        let pickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
+        let pickerViewController = UIDocumentPickerViewController(forOpeningContentTypes: supportedUITypes(), asCopy: true)
         pickerViewController.allowsMultipleSelection = false
         pickerViewController.shouldShowFileExtensions = true
+
         pickerViewController.delegate = context.coordinator
         return pickerViewController
     }

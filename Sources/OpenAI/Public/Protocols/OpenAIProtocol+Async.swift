@@ -310,6 +310,22 @@ public extension OpenAIProtocol {
         }
     }
 
+    func runRetrieveSteps(
+        threadId: String,
+        runId: String
+    ) async throws -> RunRetreiveStepsResult {
+        try await withCheckedThrowingContinuation { continuation in
+            runRetrieveSteps(threadId: threadId, runId: runId) { result in
+                switch result {
+                case let .success(success):
+                    return continuation.resume(returning: success)
+                case let .failure(failure):
+                    return continuation.resume(throwing: failure)
+                }
+            }
+        }
+    }
+
     func threadsMessages(
         threadId: String,
         before: String?

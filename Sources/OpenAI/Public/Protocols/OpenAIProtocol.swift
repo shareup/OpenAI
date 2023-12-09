@@ -347,6 +347,23 @@ public protocol OpenAIProtocol {
     func runRetrieve(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveResult, Error>) -> Void)
 
     /**
+     This function sends a thread id and run id to the OpenAI API and retrieves a run. The Runs API in this usage enables you to retrieve a run.
+
+     Example: Retrieve Run Steps
+     ```
+     openAI.runRetrieveSteps(threadId: currentThreadId, runId: currentRunId) { result in
+        //Handle response here
+     }
+     ```
+     - Parameter threadId: The thread id for the thread to run.
+     - Parameter runId: The run id for the run to retrieve.
+     - Parameter completion: The completion handler to be executed upon completion of the runRetrieve request.
+                          Returns a `Result` of type `RunRetreiveStepsResult` if successful, or an `Error` if an error occurs.
+     **/
+    func runRetrieveSteps(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void)
+
+
+    /**
      This function sends a thread id and run id to the OpenAI API and retrieves a threads messages.
      The Thread API in this usage enables you to retrieve a threads messages.
 

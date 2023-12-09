@@ -245,6 +245,12 @@ public final class ChatStore: ObservableObject {
 
         Task {
             let result = try await openAIClient.runRetrieve(threadId: currentThreadId ?? "", runId: currentRunId ?? "")
+            
+            // TESTING RETRIEVAL OF RUN STEPS
+            Task {
+                let stepsResult = try await openAIClient.runRetrieveSteps(threadId: currentThreadId ?? "", runId: currentRunId ?? "")
+               // print(stepsResult)
+            }
 
             switch result.status {
             // Get threadsMesages.
