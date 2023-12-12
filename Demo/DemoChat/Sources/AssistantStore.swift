@@ -96,7 +96,7 @@ public final class AssistantStore: ObservableObject {
     }
 
     @MainActor
-    func uploadFile(url: URL) async -> String? {
+    func uploadFile(url: URL) async -> FilesResult? {
         do {
 
             let mimeType = url.mimeType()
@@ -104,7 +104,7 @@ public final class AssistantStore: ObservableObject {
             let fileData = try Data(contentsOf: url)
 
             let result = try await openAIClient.files(query: FilesQuery(purpose: "assistants", file: fileData, fileName: url.lastPathComponent, contentType: mimeType))
-            return result.id
+            return result
         }
         catch {
             print("error = \(error)")

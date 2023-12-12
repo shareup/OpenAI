@@ -476,6 +476,13 @@ class OpenAITests: XCTestCase {
         let completionsURL = openAI.buildRunRetrieveURL(path: .runRetrieve, threadId: "thread_4321", runId: "run_1234")
         XCTAssertEqual(completionsURL, URL(string: "https://my.host.com/v1/threads/thread_4321/runs/run_1234"))
     }
+
+    func testCustomRunRetrieveStepsURLBuilt() {
+        let configuration = OpenAI.Configuration(token: "foo", organizationIdentifier: "bar", host: "my.host.com", timeoutInterval: 14)
+        let openAI = OpenAI(configuration: configuration, session: self.urlSession)
+        let completionsURL = openAI.buildRunRetrieveURL(path: .runRetrieveSteps, threadId: "thread_4321", runId: "run_1234")
+        XCTAssertEqual(completionsURL, URL(string: "https://my.host.com/v1/threads/thread_4321/runs/run_1234/steps"))
+    }
     // 1106 end
 }
 

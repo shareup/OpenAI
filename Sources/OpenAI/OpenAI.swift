@@ -66,11 +66,11 @@ final public class OpenAI: OpenAIProtocol {
     }
 
     public func runRetrieve(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveResult, Error>) -> Void) {
-        performRequest(request: JSONRequest<RunRetreiveResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieve, threadId: threadId, runId: runId), method: "GET"), completion: completion)
+        performRequest(request: JSONRequest<RunRetreiveResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieve, threadId: threadId, runId: runId, before: nil), method: "GET"), completion: completion)
     }
 
-    public func runRetrieveSteps(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void) {
-        performRequest(request: JSONRequest<RunRetreiveStepsResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieveSteps, threadId: threadId, runId: runId), method: "GET"), completion: completion)
+    public func runRetrieveSteps(threadId: String, runId: String, before: String?, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void) {
+        performRequest(request: JSONRequest<RunRetreiveStepsResult>(body: nil, url: buildRunRetrieveURL(path: .runRetrieveSteps, threadId: threadId, runId: runId, before: before), method: "GET"), completion: completion)
     }
 
     public func runs(threadId: String, query: RunsQuery, completion: @escaping (Result<RunsResult, Error>) -> Void) {
@@ -178,8 +178,6 @@ extension OpenAI {
 
                     let errorText = String(data: data, encoding: .utf8)
                     
-                    // print(errorText)
-                    
                     let decoded = try JSONDecoder().decode(ResultType.self, from: data)
                     completion(.success(decoded))
                 } catch {
@@ -284,12 +282,15 @@ extension OpenAI {
         return components.url!
     }
 
-    func buildRunRetrieveURL(path: String, threadId: String, runId: String) -> URL {
+    func buildRunRetrieveURL(path: String, threadId: String, runId: String, before: String? = nil) -> URL {
         var components = URLComponents()
         components.scheme = "https"
         components.host = configuration.host
         components.path = path.replacingOccurrences(of: "THREAD_ID", with: threadId)
                               .replacingOccurrences(of: "RUN_ID", with: runId)
+        if let before {
+            components.queryItems = [URLQueryItem(name: "before", value: before)]
+        }
         return components.url!
     }
 
@@ -312,10 +313,8 @@ extension APIPath {
     static let runs = "/v1/threads/THREAD_ID/runs"
     static let runRetrieve = "/v1/threads/THREAD_ID/runs/RUN_ID"
     static let runRetrieveSteps = "/v1/threads/THREAD_ID/runs/RUN_ID/steps"
-
     static let threadsMessages = "/v1/threads/THREAD_ID/messages"
     static let files = "/v1/files"
-    
     // 1106 end
 
     static let completions = "/v1/completions"

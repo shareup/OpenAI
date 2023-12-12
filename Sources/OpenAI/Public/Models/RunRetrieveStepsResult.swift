@@ -10,10 +10,11 @@ import Foundation
 public struct RunRetreiveStepsResult: Codable, Equatable {
     
     public struct StepDetailsTopLevel: Codable, Equatable {
-
+        public let id: String
         public let stepDetails: StepDetailsSecondLevel
 
         enum CodingKeys: String, CodingKey {
+            case id
             case stepDetails = "step_details"
         }
 

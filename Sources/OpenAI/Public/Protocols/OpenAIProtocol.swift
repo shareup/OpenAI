@@ -347,7 +347,7 @@ public protocol OpenAIProtocol {
     func runRetrieve(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveResult, Error>) -> Void)
 
     /**
-     This function sends a thread id and run id to the OpenAI API and retrieves a run. The Runs API in this usage enables you to retrieve a run.
+     This function sends a thread id and run id to the OpenAI API and retrieves a list of run steps. The Runs API in this usage enables you to retrieve a runs run steps.
 
      Example: Retrieve Run Steps
      ```
@@ -357,10 +357,11 @@ public protocol OpenAIProtocol {
      ```
      - Parameter threadId: The thread id for the thread to run.
      - Parameter runId: The run id for the run to retrieve.
+     - Parameter before: String?: The message id for the run step that defines your place in the list of run steps. Pass nil to get all.
      - Parameter completion: The completion handler to be executed upon completion of the runRetrieve request.
                           Returns a `Result` of type `RunRetreiveStepsResult` if successful, or an `Error` if an error occurs.
      **/
-    func runRetrieveSteps(threadId: String, runId: String, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void)
+    func runRetrieveSteps(threadId: String, runId: String, before: String?, completion: @escaping (Result<RunRetreiveStepsResult, Error>) -> Void)
 
 
     /**
@@ -375,7 +376,7 @@ public protocol OpenAIProtocol {
      ```
 
      - Parameter threadId: The thread id for the thread to run.
-     - Parameter before: String?: The message id for the message taht defines your place in the list of messages. Pass nil to get all.
+     - Parameter before: String?: The message id for the message that defines your place in the list of messages. Pass nil to get all.
      - Parameter completion: The completion handler to be executed upon completion of the runRetrieve request.
                           Returns a `Result` of type `ThreadsMessagesResult` if successful, or an `Error` if an error occurs.
      **/

@@ -96,7 +96,8 @@ public struct AssistantsView: View {
                         guard let selectedFileURL  else { return }
 
                         isUploading = true
-                        uploadedFileId = await assistantStore.uploadFile(url: selectedFileURL)
+                        let file = await assistantStore.uploadFile(url: selectedFileURL)
+                        uploadedFileId =  file?.id
                         isUploading = false
 
                         if uploadedFileId == nil {

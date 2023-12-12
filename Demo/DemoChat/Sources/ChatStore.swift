@@ -80,7 +80,7 @@ public final class ChatStore: ObservableObject {
                 conversationId: conversationId,
                 model: model
             )
-        // For assistant case we send chats to thread and then poll, polling will receive sent chat + new assistant messages.
+            // For assistant case we send chats to thread and then poll, polling will receive sent chat + new assistant messages.
         case .assistant:
 
             // First message in an assistant thread.
@@ -239,67 +239,107 @@ public final class ChatStore: ObservableObject {
     }
 
     private func timerFired() {
-        guard let conversationIndex = conversations.firstIndex(where: { $0.id == currentConversationId }) else {
-            return
-        }
-
         Task {
             let result = try await openAIClient.runRetrieve(threadId: currentThreadId ?? "", runId: currentRunId ?? "")
-            
+
             // TESTING RETRIEVAL OF RUN STEPS
-            Task {
-                let stepsResult = try await openAIClient.runRetrieveSteps(threadId: currentThreadId ?? "", runId: currentRunId ?? "")
-               // print(stepsResult)
-            }
+            handleRunRetrieveSteps()
 
             switch result.status {
-            // Get threadsMesages.
+                // Get threadsMesages.
             case "completed":
-                DispatchQueue.main.async {
-                    self.stopPolling()
-                }
-                var before: String?
-                if let lastNonLocalMessage = self.conversations[conversationIndex].messages.last(where: { $0.isLocal == false }) {
-                    before = lastNonLocalMessage.id
-                }
-
-                let result = try await openAIClient.threadsMessages(threadId: currentThreadId ?? "", before: before)
-
-                DispatchQueue.main.async {
-                    for item in result.data.reversed() {
-                        let role = item.role
-                        for innerItem in item.content {
-                            let message = Message(
-                                id: item.id,
-                                role: Chat.Role(rawValue: role) ?? .user,
-                                content: innerItem.text.value,
-                                createdAt: Date(),
-                                isLocal: false // Messages from the server are not local
-                            )
-                            // Check if this message from the API matches a local message
-                            if let localMessageIndex = self.conversations[conversationIndex].messages.firstIndex(where: { $0.isLocal == true }) {
-                                
-                                // Replace the local message with the API message
-                                self.conversations[conversationIndex].messages[localMessageIndex] = message
-                            } else {
-                                // This is a new message from the server, append it
-
-                                self.conversations[conversationIndex].messages.append(message)
-                            }
-                        }
-                    }
-                }
+                handleCompleted()
                 break
             case "failed":
-                DispatchQueue.main.async {
-
+                // Handle more gracefully with a popup dialog or failure indicator
+                await MainActor.run {
                     self.stopPolling()
                 }
                 break
             default:
+                // Handle additional statuses "requires_action", "queued" ?, "expired", "cancelled"
+                // https://platform.openai.com/docs/assistants/how-it-works/runs-and-run-steps
                 break
             }
         }
     }
     // END Polling section
+    
+    // This function is called when a thread is marked "completed" by the run status API.
+    private func handleCompleted() {
+        guard let conversationIndex = conversations.firstIndex(where: { $0.id == currentConversationId }) else {
+            return
+        }
+        Task {
+            await MainActor.run {
+                self.stopPolling()
+            }
+            // Once a thread is marked "completed" by the status API, we can retrieve the threads messages, including a pagins cursor representing the last message we received.
+            var before: String?
+            if let lastNonLocalMessage = self.conversations[conversationIndex].messages.last(where: { $0.isLocal == false }) {
+                before = lastNonLocalMessage.id
+            }
+
+            let result = try await openAIClient.threadsMessages(threadId: currentThreadId ?? "", before: before)
+
+            for item in result.data.reversed() {
+                let role = item.role
+                for innerItem in item.content {
+                    let message = Message(
+                        id: item.id,
+                        role: Chat.Role(rawValue: role) ?? .user,
+                        content: innerItem.text.value,
+                        createdAt: Date(),
+                        isLocal: false // Messages from the server are not local
+                    )
+                    await MainActor.run {
+                        // Check if this message from the API matches a local message
+                        if let localMessageIndex = self.conversations[conversationIndex].messages.firstIndex(where: { $0.isLocal == true }) {
+
+                            // Replace the local message with the API message
+                            self.conversations[conversationIndex].messages[localMessageIndex] = message
+                        } else {
+                            // This is a new message from the server, append it
+                            self.conversations[conversationIndex].messages.append(message)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // The run retrieval steps are fetched in a separate task. This request is fetched, checking for new run steps, each time the run is fetched.
+    private func handleRunRetrieveSteps() {
+        Task {
+            guard let conversationIndex = conversations.firstIndex(where: { $0.id == currentConversationId }) else {
+                return
+            }
+            var before: String?
+            if let lastRunStepMessage = self.conversations[conversationIndex].messages.last(where: { $0.isRunStep == true }) {
+                before = lastRunStepMessage.id
+            }
+
+            let stepsResult = try await openAIClient.runRetrieveSteps(threadId: currentThreadId ?? "", runId: currentRunId ?? "", before: before)
+
+            // Add Steps as
+            for item in stepsResult.data.reversed() {
+                for step in item.stepDetails.toolCalls?.reversed() ?? [] {
+                    // TODO: Depending on the type of tool tha is used we can add additional information here
+                    // ie: if its a retrieval: add file information, code_interpreter: add inputs and outputs info, or function: add arguemts and additional info.
+
+                    let runStepMessage = Message(
+                        id: item.id,
+                        role: .assistant,
+                        content: "RUN STEP: \(step.type)",
+                        createdAt: Date(),
+                        isRunStep: true // Messages from the server are not local
+                    )
+                    await MainActor.run {
+
+                        self.conversations[conversationIndex].messages.append(runStepMessage)
+                    }
+                }
+            }
+        }
+    }
 }

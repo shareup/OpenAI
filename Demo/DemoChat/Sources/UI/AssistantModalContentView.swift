@@ -57,10 +57,21 @@ struct AssistantModalContentView: View {
                 })
 
                 if !fileIds.isEmpty {
-                    ForEach(fileIds, id: \.self) { url in
+                    ForEach(fileIds, id: \.self) { fileId in
                         HStack {
-                            Text("File: \(url)")
-
+                            // File Id of each file added to the assistant.
+                            Text("File: \(fileId)")
+                            Spacer()
+                            // Button to remove fileId from the list of fileIds to be used when create or modify assistant.
+                            Button(action: {
+                                // Add action to remove the file from the list
+                                if let index = fileIds.firstIndex(of: fileId) {
+                                    fileIds.remove(at: index)
+                                }
+                            }) {
+                                Image(systemName: "xmark.circle.fill") // X button
+                                    .foregroundColor(.red)
+                            }
                         }
                     }
                 }
