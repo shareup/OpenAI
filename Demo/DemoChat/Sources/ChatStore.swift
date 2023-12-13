@@ -288,7 +288,7 @@ public final class ChatStore: ObservableObject {
                     let message = Message(
                         id: item.id,
                         role: Chat.Role(rawValue: role) ?? .user,
-                        content: innerItem.text.value,
+                        content: innerItem.text?.value ?? "",
                         createdAt: Date(),
                         isLocal: false // Messages from the server are not local
                     )
@@ -315,28 +315,44 @@ public final class ChatStore: ObservableObject {
                 return
             }
             var before: String?
-            if let lastRunStepMessage = self.conversations[conversationIndex].messages.last(where: { $0.isRunStep == true }) {
-                before = lastRunStepMessage.id
-            }
+//            if let lastRunStepMessage = self.conversations[conversationIndex].messages.last(where: { $0.isRunStep == true }) {
+//                before = lastRunStepMessage.id
+//            }
 
             let stepsResult = try await openAIClient.runRetrieveSteps(threadId: currentThreadId ?? "", runId: currentRunId ?? "", before: before)
 
-            // Add Steps as
             for item in stepsResult.data.reversed() {
-                for step in item.stepDetails.toolCalls?.reversed() ?? [] {
+                let toolCalls = item.stepDetails.toolCalls?.reversed() ?? []
+
+                for step in toolCalls {
                     // TODO: Depending on the type of tool tha is used we can add additional information here
                     // ie: if its a retrieval: add file information, code_interpreter: add inputs and outputs info, or function: add arguemts and additional info.
+                    let msgContent: String
+                    switch step.type {
+                    case "retrieval":
+                        msgContent = "RUN STEP: \(step.type)"
 
+                    case "code_interpreter":
+                        msgContent = "code_interpreter\ninput:\n\(step.code?.input ?? "")\noutputs: \(step.code?.outputs?.first?.logs ?? "")"
+
+                    default:
+                        msgContent = "RUN STEP: \(step.type)"
+
+                    }
                     let runStepMessage = Message(
-                        id: item.id,
+                        id: step.id,
                         role: .assistant,
-                        content: "RUN STEP: \(step.type)",
+                        content: msgContent,
                         createdAt: Date(),
-                        isRunStep: true // Messages from the server are not local
+                        isRunStep: true
                     )
                     await MainActor.run {
-
-                        self.conversations[conversationIndex].messages.append(runStepMessage)
+                        if let localMessageIndex = self.conversations[conversationIndex].messages.firstIndex(where: { $0.isRunStep == true && $0.id == step.id }) {
+                            self.conversations[conversationIndex].messages[localMessageIndex] = runStepMessage
+                        }
+                        else {
+                            self.conversations[conversationIndex].messages.append(runStepMessage)
+                        }
                     }
                 }
             }

@@ -27,13 +27,25 @@ public struct RunRetreiveStepsResult: Codable, Equatable {
             }
 
             public struct ToolCall: Codable, Equatable {
+                public let id: String
                 public let type: String
                 public let code: CodeToolCall?
                 
+                enum CodingKeys: String, CodingKey {
+                    case id
+                    case type
+                    case code = "code_interpreter"
+                }
+
                 public struct CodeToolCall: Codable, Equatable {
                     public let input: String
-                    public let outputs: [[String: String]]
+                    public let outputs: [CodeToolCallOutput]?
 
+                    public struct CodeToolCallOutput: Codable, Equatable {
+                        public let type: String
+                        public let logs: String?
+
+                    }
                 }
             }
         }

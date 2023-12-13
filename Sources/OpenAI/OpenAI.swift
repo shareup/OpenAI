@@ -177,7 +177,7 @@ extension OpenAI {
                 do {
 
                     let errorText = String(data: data, encoding: .utf8)
-                    
+
                     let decoded = try JSONDecoder().decode(ResultType.self, from: data)
                     completion(.success(decoded))
                 } catch {
