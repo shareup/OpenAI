@@ -530,7 +530,7 @@ class OpenAITests: XCTestCase {
     }
     
     func testRunRetrieveStepsQuery() async throws {
-        let expectedResult = RunRetrieveStepsResult(data: [.init(id: "step_1234", stepDetails: .init(toolCalls: [.init(id: "tool_456", type: .retrieval, codeInterpreter: nil, function: nil)]))])
+        let expectedResult = RunRetrieveStepsResult(data: [.init(id: "step_1234", stepDetails: .init(toolCalls: [.init(id: "tool_456", type: .fileSearch, codeInterpreter: nil, function: nil)]))])
         try self.stub(result: expectedResult)
         
         let result = try await openAI.runRetrieveSteps(threadId: "thread_1234", runId: "run_1234")

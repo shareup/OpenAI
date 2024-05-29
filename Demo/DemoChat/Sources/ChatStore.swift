@@ -90,10 +90,21 @@ public final class ChatStore: ObservableObject {
                 localMessage.isLocal = true
                 conversations[conversationIndex].messages.append(localMessage)
 
-                guard let newMessage = ChatQuery.ChatCompletionMessageParam(role: message.role, content: message.content) else { 
-                    print("error: Couldn't form message")
+                guard let role: ThreadsQuery.Message.Role = {
+                    switch message.role {
+                    case .assistant:
+                        return .assistant
+                    case .user:
+                        return .user
+                    case .system, .tool:
+                        print("error: Unsupported thread message role")
+                        return nil
+                    }
+                }() else {
                     return
                 }
+                
+                let newMessage = ThreadsQuery.Message(role: role, content: message.content)
 
                 do {
 
@@ -363,7 +374,7 @@ public final class ChatStore: ObservableObject {
                 // ie: if its a retrieval: add file information, code_interpreter: add inputs and outputs info, or function: add arguemts and additional info.
                 let msgContent: String
                 switch step.type {
-                case .retrieval:
+                case .fileSearch:
                     msgContent = "RUN STEP: \(step.type)"
 
                 case .codeInterpreter:
