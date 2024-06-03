@@ -23,13 +23,11 @@ public struct ThreadsQuery: Equatable, Codable {
             case user
             case assistant
         }
-        public var createdAt: TimeInterval
         public var role: Role
         public var content: [Content]
         public var attachments: [Attachment]
         
         enum CodingKeys: String, CodingKey {
-            case createdAt = "created_at"
             case role
             case content
             case attachments
@@ -39,6 +37,12 @@ public struct ThreadsQuery: Equatable, Codable {
             case text(Text)
             case imageFile(ImageFile)
             case imageURL(ImageURL)
+            
+            public enum ImageDetail: String, Codable {
+                case auto
+                case low
+                case high
+            }
             
             var contentType: ContentType {
                 switch self {
@@ -58,29 +62,33 @@ public struct ThreadsQuery: Equatable, Codable {
             }
             
             public struct Text: Equatable, Codable {
-                public let value: String
-                // TODO: Add annotations
+                public let text: String
                 
-                public init(value: String) {
-                    self.value = value
+                public init(text: String) {
+                    self.text = text
                 }
             }
             
             public struct ImageFile: Equatable, Codable {
                 public let fileID: String
-                public let detail: String
+                public let detail: ImageDetail
                 
                 enum CodingKeys: String, CodingKey {
                     case fileID = "file_id"
                     case detail
                 }
+                
+                public init(fileID: String, detail: ImageDetail = .auto) {
+                    self.fileID = fileID
+                    self.detail = detail
+                }
             }
             
             public struct ImageURL: Equatable, Codable {
                 public let url: String
-                public let detail: String
+                public let detail: ImageDetail
                 
-                public init(url: String, detail: String) {
+                public init(url: String, detail: ImageDetail = .auto) {
                     self.url = url
                     self.detail = detail
                 }
@@ -124,14 +132,12 @@ public struct ThreadsQuery: Equatable, Codable {
         }
         
         public init(
-            createdAt: TimeInterval = Date().timeIntervalSince1970,
             role: Role,
             text: String,
             attachments: [Attachment] = []
         ) {
-            self.createdAt = createdAt
             self.role = role
-            self.content = [.text(.init(value: text))]
+            self.content = [.text(.init(text: text))]
             self.attachments = attachments
         }
     }
