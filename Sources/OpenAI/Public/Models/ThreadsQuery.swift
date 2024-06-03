@@ -34,7 +34,7 @@ public struct ThreadsQuery: Equatable, Codable {
         }
         
         public enum Content: Equatable, Codable {
-            case text(Text)
+            case text(String)
             case imageFile(ImageFile)
             case imageURL(ImageURL)
             
@@ -60,15 +60,7 @@ public struct ThreadsQuery: Equatable, Codable {
                 case imageFile = "image_file"
                 case imageURL = "image_url"
             }
-            
-            public struct Text: Equatable, Codable {
-                public let text: String
-                
-                public init(text: String) {
-                    self.text = text
-                }
-            }
-            
+
             public struct ImageFile: Equatable, Codable {
                 public let fileID: String
                 public let detail: ImageDetail
@@ -119,7 +111,7 @@ public struct ThreadsQuery: Equatable, Codable {
                 let type = try container.decode(ContentType.self, forKey: .type)
                 switch type {
                 case .text:
-                    let text = try container.decode(Text.self, forKey: .text)
+                    let text = try container.decode(String.self, forKey: .text)
                     self = .text(text)
                 case .imageFile:
                     let file = try container.decode(ImageFile.self, forKey: .imageFile)
@@ -137,7 +129,7 @@ public struct ThreadsQuery: Equatable, Codable {
             attachments: [Attachment] = []
         ) {
             self.role = role
-            self.content = [.text(.init(text: text))]
+            self.content = [.text(text)]
             self.attachments = attachments
         }
     }
