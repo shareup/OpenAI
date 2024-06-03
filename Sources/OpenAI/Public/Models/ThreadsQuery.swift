@@ -125,6 +125,16 @@ public struct ThreadsQuery: Equatable, Codable {
         
         public init(
             role: Role,
+            content: [Content],
+            attachments: [Attachment] = []
+        ) {
+            self.role = role
+            self.content = content
+            self.attachments = attachments
+        }
+        
+        public init(
+            role: Role,
             text: String,
             attachments: [Attachment] = []
         ) {
