@@ -104,7 +104,7 @@ public final class ChatStore: ObservableObject {
                     return
                 }
                 
-                let newMessage = ThreadsQuery.Message(role: role, content: message.content)
+                let newMessage = ThreadsQuery.Message(role: role, text: message.content)
 
                 do {
 
