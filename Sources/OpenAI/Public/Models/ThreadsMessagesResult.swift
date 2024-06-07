@@ -50,11 +50,13 @@ public struct ThreadsMessagesResult: Codable, Equatable {
         public let id: String
         public let role: ChatQuery.ChatCompletionMessageParam.Role
         public let content: [ThreadsMessageContent]
+        public let createdAt: TimeInterval
 
         enum CodingKeys: String, CodingKey {
             case id
             case content
             case role
+            case createdAt = "created_at"
         }
     }
 
